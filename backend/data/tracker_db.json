@@ -1,0 +1,20 @@
+{
+  "google-analytics.com": {"company": "Google", "type": "Analytics"},
+  "googletagmanager.com": {"company": "Google", "type": "Analytics"},
+  "doubleclick.net": {"company": "Google", "type": "Advertising"},
+  "facebook.net": {"company": "Meta", "type": "Tracking"},
+  "facebook.com": {"company": "Meta", "type": "Tracking"},
+  "connect.facebook.net": {"company": "Meta", "type": "Tracking"},
+  "twitter.com": {"company": "X", "type": "Tracking"},
+  "ads-twitter.com": {"company": "X", "type": "Advertising"},
+  "linkedin.com": {"company": "Microsoft", "type": "Tracking"},
+  "amazon-adsystem.com": {"company": "Amazon", "type": "Advertising"},
+  "hotjar.com": {"company": "Hotjar", "type": "Analytics"},
+  "tiktok.com": {"company": "ByteDance", "type": "Tracking"},
+  "criteo.com": {"company": "Criteo", "type": "Advertising"},
+  "bing.com": {"company": "Microsoft", "type": "Tracking"},
+  "ads.linkedin.com": {"company": "Microsoft", "type": "Advertising"},
+  "cloudflareinsights.com": {"company": "Cloudflare", "type": "Analytics"},
+  "segment.com": {"company": "Twilio", "type": "Analytics"},
+  "mixpanel.com": {"company": "Mixpanel", "type": "Analytics"}
+}
