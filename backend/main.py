@@ -32,7 +32,12 @@ def scan_website(request: ScanRequest):
         # 1. Capture Traffic & 4. Scrape Policy (Run in parallel if possible, or sequential)
         # We will run them sequentially for stability
         traffic_data = capture_traffic(url)
-        policy_text = scrape_policy(url)
+        policy_result = scrape_policy(url)
+        
+        # Extract the raw text from the new structured JSON response
+        policy_text = ""
+        if policy_result and policy_result.get("status") == "FOUND":
+            policy_text = policy_result.get("content", "")
         
         # 2. Detect Trackers
         detected_trackers = detect_trackers(traffic_data)
@@ -42,6 +47,10 @@ def scan_website(request: ScanRequest):
         
         # 5. Analyze Policy
         policy_claims = analyze_policy(policy_text)
+        
+        # Append insight if policy wasn't found
+        if policy_result and policy_result.get("status") == "NOT_FOUND" and policy_result.get("insight"):
+            policy_claims.append(policy_result.get("insight"))
         
         # 6. Compare Policy vs Traffic
         mismatches = compare_policy_vs_traffic(detected_trackers, policy_claims)
