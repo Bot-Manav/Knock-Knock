@@ -27,7 +27,7 @@ def fetch_with_playwright(url: str, timeout: int = 15000) -> str:
     """Fetches HTML using Playwright as a fallback for dynamic pages."""
     try:
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage"])
             context = browser.new_context()
             page = context.new_page()
             page.goto(url, wait_until="domcontentloaded", timeout=timeout)
