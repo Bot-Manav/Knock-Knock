@@ -22,7 +22,8 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/api/scan", {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+      const response = await fetch(`${baseUrl}/api/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: formattedUrl }),
