@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Search, Loader2 } from "lucide-react";
+import { ShieldCheck, Search, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 
 export default function Home() {
   const [url, setUrl] = useState("");
+  const [policyUrl, setPolicyUrl] = useState("");
+  const [policyText, setPolicyText] = useState("");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -26,7 +29,11 @@ export default function Home() {
       const response = await fetch(`${baseUrl}/api/scan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: formattedUrl }),
+        body: JSON.stringify({ 
+          url: formattedUrl,
+          policy_url: policyUrl.trim() || undefined,
+          policy_text: policyText.trim() || undefined
+        }),
       });
 
       if (!response.ok) {
@@ -94,6 +101,48 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2 text-sm text-slate-400 hover:text-indigo-400 transition-colors"
+            >
+              {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {showAdvanced ? "Hide Advanced Options" : "Show Advanced Options"}
+            </button>
+          </div>
+
+          {showAdvanced && (
+            <div className="mt-4 p-5 bg-slate-800/50 border border-slate-700/50 rounded-xl space-y-4 text-left">
+              <p className="text-sm text-slate-400 mb-2">
+                Provide a specific privacy policy URL or paste the raw text to bypass auto-discovery.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Custom Policy URL</label>
+                <input
+                  type="text"
+                  placeholder="https://example.com/legal/privacy"
+                  value={policyUrl}
+                  onChange={(e) => setPolicyUrl(e.target.value)}
+                  disabled={isScanning}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Or Paste Policy Text</label>
+                <textarea
+                  placeholder="Paste the raw privacy policy text here..."
+                  value={policyText}
+                  onChange={(e) => setPolicyText(e.target.value)}
+                  disabled={isScanning}
+                  rows={4}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-slate-200 focus:outline-none focus:border-indigo-500 transition-colors resize-y"
+                />
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="mt-4 text-red-400 text-sm font-medium bg-red-950/40 p-3 rounded-lg border border-red-900/50">
               {error}

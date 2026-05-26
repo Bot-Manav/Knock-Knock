@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import asyncio
 
 from scanner.traffic_capture import capture_traffic
@@ -22,6 +23,8 @@ app.add_middleware(
 
 class ScanRequest(BaseModel):
     url: str
+    policy_url: Optional[str] = None
+    policy_text: Optional[str] = None
 
 @app.post("/api/scan")
 def scan_website(request: ScanRequest):
@@ -32,12 +35,24 @@ def scan_website(request: ScanRequest):
         # 1. Capture Traffic & 4. Scrape Policy (Run in parallel if possible, or sequential)
         # We will run them sequentially for stability
         traffic_data = capture_traffic(url)
-        policy_result = scrape_policy(url)
         
-        # Extract the raw text from the new structured JSON response
+        policy_result = None
         policy_text = ""
-        if policy_result and policy_result.get("status") == "FOUND":
-            policy_text = policy_result.get("content", "")
+        
+        if request.policy_text:
+            print("Using provided raw policy text.")
+            policy_text = request.policy_text
+            policy_result = {"status": "FOUND", "content": policy_text}
+        elif request.policy_url:
+            print(f"Scraping specific provided policy URL: {request.policy_url}")
+            from policy.policy_scraper import scrape_specific_policy_url
+            policy_result = scrape_specific_policy_url(request.policy_url)
+            if policy_result and policy_result.get("status") == "FOUND":
+                policy_text = policy_result.get("content", "")
+        else:
+            policy_result = scrape_policy(url)
+            if policy_result and policy_result.get("status") == "FOUND":
+                policy_text = policy_result.get("content", "")
         
         # 2. Detect Trackers
         detected_trackers = detect_trackers(traffic_data)

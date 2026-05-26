@@ -4,12 +4,13 @@ from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright
 
 # Keywords for discovering policy links
-POLICY_KEYWORDS = ["privacy", "policy", "data", "gdpr", "legal", "terms", "security"]
+POLICY_KEYWORDS = ["privacy", "policy", "data", "gdpr", "legal", "terms", "security", "privacy-notice", "privacy-statement", "cookie-policy", "ccpa"]
 
 # Validation phrases to ensure the page is actually a privacy policy
 VALIDATION_PHRASES = [
     "we collect", "personal data", "third party", "cookies", 
-    "information we collect", "data usage", "your data"
+    "information we collect", "data usage", "your data",
+    "how we use your information", "data retention", "sell my personal information", "your rights"
 ]
 
 def fetch_html(url: str, timeout: int = 10) -> str:
@@ -67,7 +68,11 @@ def try_common_paths(base_url: str) -> list:
     return [
         f"{base_url}/privacy",
         f"{base_url}/privacy-policy",
+        f"{base_url}/privacy-notice",
+        f"{base_url}/privacy-statement",
         f"{base_url}/legal/privacy",
+        f"{base_url}/legal/privacy-policy",
+        f"{base_url}/policies/privacy",
         f"{base_url}/terms",
         f"{base_url}/data-policy",
         f"{base_url}/privacy.html"
@@ -76,6 +81,10 @@ def try_common_paths(base_url: str) -> list:
 def clean_html_text(html: str) -> str:
     """Extracts clean text from HTML content."""
     soup = BeautifulSoup(html, "html.parser")
+    # Remove irrelevant sections to improve accuracy
+    for tag in soup(["script", "style", "nav", "header", "footer", "noscript"]):
+        tag.decompose()
+        
     text_blocks = soup.find_all(['p', 'li', 'h1', 'h2', 'h3', 'div', 'span'])
     full_text = " ".join([b.get_text(strip=True) for b in text_blocks])
     # Remove excessive whitespaces
@@ -158,4 +167,33 @@ def scrape_policy(base_url: str) -> dict:
         "summary": None,
         "confidence": "HIGH",
         "insight": "No accessible privacy policy found. This may indicate low transparency."
+    }
+
+def scrape_specific_policy_url(url: str) -> dict:
+    """Scrapes a specific URL provided by the user."""
+    print(f"Checking provided custom URL: {url}")
+    html = fetch_html(url)
+    if not html:
+        print("Standard fetch failed or returned nothing, trying Playwright...")
+        html = fetch_with_playwright(url)
+        
+    if not html:
+        return {
+            "status": "NOT_FOUND",
+            "url": url,
+            "content": None,
+            "summary": None,
+            "confidence": "NONE",
+            "insight": "Could not access the provided URL."
+        }
+        
+    clean_text = clean_html_text(html)
+    summary_snippet = clean_text[:300] + "..." if len(clean_text) > 300 else clean_text
+    
+    return {
+        "status": "FOUND",
+        "url": url,
+        "content": clean_text,
+        "summary": summary_snippet,
+        "confidence": "HIGH" # We assume user provided the correct URL
     }
