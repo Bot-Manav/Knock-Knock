@@ -1,8 +1,8 @@
+from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
-import asyncio
+from typing import Literal, Optional
 
 from scanner.traffic_capture import capture_traffic
 from policy.policy_scraper import scrape_policy
@@ -21,20 +21,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class WebsiteDetails(BaseModel):
+    name: Optional[str] = None
+    category: Optional[str] = None
+    scan_purpose: Optional[str] = None
+    notes: Optional[str] = None
+    additional_pages: Optional[list[str]] = None
+    scan_depth: Literal["standard", "thorough"] = "standard"
+
+
 class ScanRequest(BaseModel):
     url: str
     policy_url: Optional[str] = None
     policy_text: Optional[str] = None
+    website_details: Optional[WebsiteDetails] = None
+
 
 @app.post("/api/scan")
 def scan_website(request: ScanRequest):
     try:
         url = request.url
+        details = request.website_details or WebsiteDetails()
         print(f"Starting scan for: {url}")
-        
-        # 1. Capture Traffic & 4. Scrape Policy (Run in parallel if possible, or sequential)
-        # We will run them sequentially for stability
-        traffic_data = capture_traffic(url)
+
+        traffic_result = capture_traffic(
+            url,
+            additional_pages=details.additional_pages,
+            scan_depth=details.scan_depth,
+        )
+        traffic_data = traffic_result["requests"]
+        scan_metadata = traffic_result["metadata"]
         
         policy_result = None
         policy_text = ""
@@ -81,7 +98,13 @@ def scan_website(request: ScanRequest):
             "trackers": [t.model_dump() if hasattr(t, 'model_dump') else t for t in detected_trackers],
             "leaks": leaks,
             "policy_summary": policy_claims,
-            "mismatches": mismatches
+            "mismatches": mismatches,
+            "website_details": details.model_dump(exclude_none=True),
+            "scan_metadata": {
+                **scan_metadata,
+                "scanned_at": datetime.now(timezone.utc).isoformat(),
+                "target_url": url,
+            },
         }
     except Exception as e:
         print(f"Error during scan: {e}")
