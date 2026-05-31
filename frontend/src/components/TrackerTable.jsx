@@ -1,143 +1,109 @@
 import { useState, Fragment } from "react";
-import { Database, Target, ChevronDown, ChevronUp, ShieldAlert, Zap } from "lucide-react";
+import { Database, Target, ChevronDown, ChevronUp } from "lucide-react";
 
-const TYPE_STYLES = {
-  analytics: "bg-blue-500/10 text-blue-300 border-blue-500/20",
-  advertising: "bg-violet-500/10 text-violet-300 border-violet-500/20",
-  exfiltration: "bg-red-500/10 text-red-300 border-red-500/20",
-  default: "bg-rose-500/10 text-rose-300 border-rose-500/20",
-};
-
-function getTypeStyle(type) {
-  const lower = type.toLowerCase();
-  if (lower.includes("analytics")) return TYPE_STYLES.analytics;
-  if (lower.includes("advertising")) return TYPE_STYLES.advertising;
-  if (lower.includes("exfiltration")) return TYPE_STYLES.exfiltration;
-  return TYPE_STYLES.default;
-}
-
-export default function TrackerTable({ trackers }) {
+export default function TrackerTable({
+  trackers,
+  compact = false,
+  totalCount,
+  truncated = false,
+}) {
   const [expandedRow, setExpandedRow] = useState(null);
+  const count = totalCount ?? trackers?.length ?? 0;
 
   if (!trackers?.length) {
     return (
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-            <Target className="text-indigo-400 w-5 h-5" />
-          </div>
-          <h3 className="text-base font-semibold text-white">Detected Trackers</h3>
+      <div className="palette-card p-6 bg-orange">
+        <div className="flex items-center gap-3 mb-3">
+          <Target className="w-5 h-5 text-brown" />
+          <h3 className="font-bold text-brown">
+            {compact ? "Top connections (sample)" : "Third-party connections"}
+          </h3>
         </div>
-        <div className="flex items-center gap-3 p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
-          <Target className="w-5 h-5 shrink-0 opacity-60" />
-          No trackers or exfiltration endpoints were detected.
-        </div>
+        <p className="text-sm text-brown p-4 bg-cream rounded-xl border-2 border-brown font-medium">
+          None detected on the scanned page — good for minimal data sharing.
+        </p>
       </div>
     );
   }
 
-  const toggleRow = (idx) => {
-    setExpandedRow(expandedRow === idx ? null : idx);
-  };
-
   return (
-    <div className="glass-card overflow-hidden">
-      <div className="p-6 border-b border-white/5 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20">
-            <Target className="text-indigo-400 w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-white">Detected Endpoints</h3>
-            <p className="text-xs text-slate-500">{trackers.length} tracker{trackers.length !== 1 ? "s" : ""} found</p>
-          </div>
+    <div className="palette-card overflow-hidden bg-cream">
+      <div className="p-5 border-b-2 border-terracotta flex justify-between items-center bg-orange">
+        <div className="flex items-center gap-2">
+          <Target className="w-5 h-5 text-brown" />
+          <h3 className="font-bold text-brown">
+            {compact ? "Top connections (sample)" : "Third-party connections"}
+          </h3>
         </div>
-        <span className="section-pill">{trackers.length} total</span>
+        <span className="section-pill text-[10px]">
+          {compact && truncated ? `${trackers.length} of ${count}` : count}
+        </span>
       </div>
-
+      {compact && truncated && (
+        <p className="px-5 py-2 text-xs text-brown bg-cream border-b border-terracotta">
+          Showing first {trackers.length} of {count}. Master scan lists all partners with full
+          details.
+        </p>
+      )}
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
+        <table className="w-full text-sm text-brown">
           <thead>
-            <tr className="border-b border-white/5 text-xs uppercase tracking-wide text-slate-500">
-              <th className="px-6 py-3.5 font-medium">Domain</th>
-              <th className="px-6 py-3.5 font-medium">Company</th>
-              <th className="px-6 py-3.5 font-medium">Type</th>
-              <th className="px-6 py-3.5 font-medium text-right">Details</th>
+            <tr className="border-b-2 border-brown bg-terracotta text-cream font-bold text-xs uppercase">
+              <th className="px-5 py-3 text-left">Domain</th>
+              <th className="px-5 py-3 text-left">Company</th>
+              <th className="px-5 py-3 text-left">Type</th>
+              {!compact && <th className="px-5 py-3 text-right" />}
             </tr>
           </thead>
           <tbody>
             {trackers.map((tracker, idx) => {
               const isExpanded = expandedRow === idx;
-              const hasBehavior = tracker.confidence !== undefined;
+              const hasBehavior = !compact && tracker.confidence !== undefined;
 
               return (
                 <Fragment key={idx}>
                   <tr
-                    className={`border-b border-white/[0.03] transition-colors cursor-pointer ${
-                      isExpanded ? "bg-indigo-500/[0.06]" : "hover:bg-white/[0.02]"
-                    }`}
-                    onClick={() => toggleRow(idx)}
+                    className={`border-b border-terracotta ${
+                      !compact ? "cursor-pointer hover:bg-orange/60" : ""
+                    } ${isExpanded ? "bg-orange" : ""}`}
+                    onClick={() => !compact && setExpandedRow(isExpanded ? null : idx)}
                   >
-                    <td className="px-6 py-4 font-mono text-xs text-cyan-300/90">{tracker.domain}</td>
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-2 text-slate-300">
-                        <Database className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                    <td className="px-5 py-3 font-mono text-xs font-semibold">
+                      {tracker.domain}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="flex items-center gap-1.5">
+                        <Database className="w-3.5 h-3.5 opacity-60" />
                         {tracker.company}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium border ${getTypeStyle(tracker.type)}`}
-                      >
+                    <td className="px-5 py-3">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-cream border-2 border-brown">
                         {tracker.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right text-slate-500">
-                      {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 inline-block text-indigo-400" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 inline-block" />
-                      )}
-                    </td>
+                    {!compact && (
+                      <td className="px-5 py-3 text-right">
+                        {isExpanded ? (
+                          <ChevronUp className="w-4 h-4 inline" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4 inline" />
+                        )}
+                      </td>
+                    )}
                   </tr>
-
                   {isExpanded && hasBehavior && (
-                    <tr className="bg-black/20">
-                      <td colSpan="4" className="px-6 py-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                              <ShieldAlert
-                                className={`w-4 h-4 ${
-                                  tracker.risk === "High" || tracker.risk === "Critical"
-                                    ? "text-red-400"
-                                    : "text-amber-400"
-                                }`}
-                              />
-                              <span className="text-slate-400">Risk:</span>
-                              <span className="text-white font-medium">{tracker.risk}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Zap className="w-4 h-4 text-indigo-400" />
-                              <span className="text-slate-400">Confidence:</span>
-                              <span className="text-white font-medium">{tracker.confidence}%</span>
-                            </div>
-                            {tracker.reason?.length > 0 && (
-                              <ul className="space-y-1 text-xs text-slate-400">
-                                {tracker.reason.map((r, i) => (
-                                  <li key={i} className="flex gap-2">
-                                    <span className="text-indigo-500">·</span>
-                                    {r}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                          <div className="bg-white/[0.03] border border-white/5 p-4 rounded-xl text-slate-300 text-sm leading-relaxed">
-                            <span className="text-indigo-300 font-medium block mb-1.5">Behavior</span>
+                    <tr className="bg-orange">
+                      <td colSpan="4" className="px-5 py-4 text-xs">
+                        <p>
+                          <strong>Risk:</strong> {tracker.risk} · <strong>Confidence:</strong>{" "}
+                          {tracker.confidence}%
+                        </p>
+                        {tracker.explanation && (
+                          <p className="mt-2 p-3 bg-cream rounded-lg border-2 border-terracotta">
                             {tracker.explanation}
-                          </div>
-                        </div>
+                          </p>
+                        )}
                       </td>
                     </tr>
                   )}

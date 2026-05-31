@@ -1,38 +1,71 @@
 # Knock-Knock — Privacy Leak Scanner
 
-Knock-Knock is a privacy analysis tool that scans websites for third-party trackers, potential data leaks, and mismatches between actual network behavior and the site's privacy policy.
+Knock-Knock (PLS) helps people understand **whether a website's privacy policy matches what the site actually does** — for transparency, fair user agreements, and compliance. It is a **help tool**, not a hacking or penetration-testing platform.
 
-Enter a URL, optionally describe the website you're scanning, and receive a detailed report with risk scores, tracker breakdowns, and policy insights.
+Enter a URL and run a **Simple scan** (any public site) or **Master scan** (full audit when you have permission). You get scores, data-flow overview, and plain-language explanations.
+
+## Scan modes
+
+| Mode | When to use | What it does |
+|------|-------------|--------------|
+| **Simple scan** (default) | Any public website | Homepage only; top 5 partners; scores; 2 policy highlights; gaps hidden |
+| **Master scan** | You own the site or have permission | All trackers, every mismatch, leak notes, data-flow domains, compliance steps, profile |
+
+## What problem it solves
+
+Modern websites often connect to third-party analytics, ads, and services. Users and site owners may not know whether those connections are **disclosed honestly** in the privacy policy. Knock-Knock answers that question ethically.
+
+## Architecture (PLS components)
+
+| Component | Implementation |
+|-----------|----------------|
+| **1. Input module** | URL + optional website context, policy URL/text |
+| **2. Traffic capture** | Playwright — loads only URLs you provide |
+| **3. Data leak detection** | Passive check for email, location, cookie signals in observed requests |
+| **4. Tracker detection** | Known tracker database + behavior classification |
+| **5. Risk scoring** | Privacy risk + transparency scores |
+| **6. Visualization dashboard** | Data flow diagram, score charts, tracker table |
+| **7. Explainability layer** | Plain-language insights + compliance guidance |
+
+## Ethical use policy
+
+**Do use Knock-Knock to:**
+
+- Audit sites you **own** or have **written permission** to review
+- Check policy alignment for compliance (GDPR, CCPA, internal audits)
+- Educate teams about transparency and user agreements
+
+**Do not use Knock-Knock to:**
+
+- Scan sites without permission
+- Probe hidden paths, bypass security, or enumerate internal systems
+- Attack, exploit, or "crack" anything
+
+Simple scan is for public transparency checks; Master scan is for authorized full audits.
 
 ## Features
 
-- **Network traffic capture** — Uses Playwright to load the target site and record outbound requests
-- **Tracker detection** — Identifies analytics, advertising, and data exfiltration endpoints
-- **Data leak detection** — Flags sensitive information in network payloads
-- **Privacy policy analysis** — Scrapes and parses policy text, then compares claims against observed traffic
-- **Risk & transparency scores** — Summarizes findings with easy-to-read scores
+- **Network traffic capture** — Playwright loads your URL and records outbound requests
+- **Tracker detection** — Analytics, advertising, and data-sharing endpoints
+- **Data leak signals** — Email, location, and cookie-related patterns (with policy context)
+- **Privacy policy analysis** — Scrapes or accepts policy text; compares vs. traffic
+- **Risk & transparency scores** — Easy-to-read summary metrics
+- **Data flow overview** — Visitor → your site → third-party partners
+- **Plain-language insights** — Technical results explained for non-experts
+- **Compliance guidance** — Ethical next steps for policy alignment
 
-### Website details (new)
-
-Before scanning, you can optionally provide extra context about the target site:
+### Website details (Master scan)
 
 | Field | Description |
 |-------|-------------|
-| **Website name** | Display name shown in the report (e.g. "Acme Store") |
-| **Category** | E-commerce, SaaS, social media, finance, healthcare, etc. |
-| **Scan purpose** | Personal curiosity, business audit, compliance review, research, vendor due diligence |
-| **Additional pages** | Comma-separated paths to scan (e.g. `/checkout`, `/login`) |
+| **Website name** | Display name in the report |
+| **Category** | E-commerce, SaaS, healthcare, etc. |
+| **Scan purpose** | Compliance audit, vendor review, etc. |
+| **Additional pages** | Only paths **you** list (e.g. `/checkout`) |
 | **Scan depth** | Standard (~15s/page) or Thorough (~25s/page) |
-| **Notes** | Free-text context included in the final report |
+| **Notes** | Context for your records |
 
-The report ends with a **Website Profile** section that shows everything you entered, plus scan metadata (pages scanned, duration, requests captured, timestamp).
-
-### Policy options
-
-Under **Show Policy Options** on the home page, you can:
-
-- Provide a custom privacy policy URL, or
-- Paste raw policy text to skip auto-discovery
+Invalid or unreachable URLs return an error — **no fake report** is generated.
 
 ## Tech stack
 
@@ -47,14 +80,14 @@ Under **Show Policy Options** on the home page, you can:
 ```
 Knock-Knock/
 ├── backend/
-│   ├── main.py                 # FastAPI entry point & /api/scan
-│   ├── scanner/                # Playwright traffic capture
-│   ├── analyzer/               # Tracker, leak, and risk analysis
-│   └── policy/                 # Policy scraping & comparison
+│   ├── main.py
+│   ├── scanner/          # Traffic capture, URL validation
+│   ├── analyzer/         # Trackers, leaks, scores, explainability
+│   └── policy/           # Policy scraping & comparison
 ├── frontend/
 │   └── src/
-│       ├── pages/              # Home (scanner) & Report
-│       └── components/         # RiskScore, TrackerTable, WebsiteProfile, etc.
+│       ├── pages/        # Home & Report
+│       └── components/   # DataFlow, PlainLanguage, RiskScore, etc.
 └── docker-compose.yml
 ```
 
@@ -64,96 +97,64 @@ Knock-Knock/
 
 - Python 3.10+
 - Node.js 18+
-- (Optional) Docker & Docker Compose
 
-### Backend setup
+### Backend
 
 ```bash
-git clone https://github.com/Bot-Manav/Knock-Knock.git
-cd Knock-Knock/backend
-
+cd backend
 python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-# Mac/Linux
-source venv/bin/activate
-
+venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 playwright install
-
 uvicorn main:app --reload
 ```
 
-Backend runs at **http://localhost:8000**
+API: **http://localhost:8000** · Docs: **http://localhost:8000/docs**
 
-API docs: **http://localhost:8000/docs**
-
-### Frontend setup
+### Frontend
 
 ```bash
-cd ../frontend
+cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs at **http://localhost:5173**
+App: **http://localhost:5173**
 
-Set `VITE_API_BASE_URL` in a `.env` file if the backend is not on `http://localhost:8000`:
+Optional `.env`:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-### Docker (optional)
-
-From the project root:
+### Docker
 
 ```bash
 docker compose up --build
 ```
 
-- Frontend: **http://localhost**
-- Backend: **http://localhost:8000**
-
 ## Usage
 
-1. Open the frontend in your browser.
-2. Enter the target website URL.
-3. Fill in **Website Details** (optional) — name, category, purpose, extra pages, scan depth, notes.
-4. Expand **Policy Options** if you have a specific policy URL or text.
-5. Click **Analyze** and wait for the scan to complete.
-6. Review the report: summary, scores, trackers, leaks, policy insights, and the **Website Profile** at the bottom.
+1. Open the frontend.
+2. Enter a **valid public URL** (e.g. `example.com`).
+3. Click **Simple Scan** — or enable **Master scan** if you own the site.
+4. Optionally add website context (Master scan only).
+5. Review the report.
 
 ## API
 
 ### `POST /api/scan`
 
-**Request body:**
+Returns on success:
 
-```json
-{
-  "url": "https://example.com",
-  "policy_url": "https://example.com/privacy",
-  "policy_text": null,
-  "website_details": {
-    "name": "Example Store",
-    "category": "ecommerce",
-    "scan_purpose": "business",
-    "notes": "Checking checkout page trackers",
-    "additional_pages": ["/checkout", "/login"],
-    "scan_depth": "standard"
-  }
-}
-```
-
-**Response includes:**
-
-- `risk_score`, `transparency_score`
+- `scan_status`, `scan_mode`, `risk_score`, `transparency_score`
 - `trackers`, `leaks`, `policy_summary`, `mismatches`
-- `website_details` — echoed user input
-- `scan_metadata` — pages scanned, page title, duration, request count, timestamp
+- `plain_language` — explainability insights
+- `data_flow` — grouped third-party connections
+- `compliance_insights` — ethical guidance
+- `website_details`, `scan_metadata`
+
+Returns **400** for invalid URLs, **422** if the site cannot be reached.
 
 ## License
 

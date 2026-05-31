@@ -5,11 +5,15 @@ from pydantic import BaseModel
 from typing import Literal, Optional
 
 from scanner.traffic_capture import capture_traffic
+from scanner.url_validator import validate_scan_url
 from policy.policy_scraper import scrape_policy
 from policy.policy_analyzer import analyze_policy, compare_policy_vs_traffic
 from analyzer.tracker_detector import detect_trackers
 from analyzer.leak_detector import detect_leaks
 from analyzer.risk_engine import calculate_scores
+from analyzer.compliance_insights import build_compliance_insights
+from analyzer.explainability import build_explainability_report
+from analyzer.report_formatter import format_report_for_mode
 
 app = FastAPI(title="Privacy Leak Scanner API")
 
@@ -29,6 +33,22 @@ class WebsiteDetails(BaseModel):
     notes: Optional[str] = None
     additional_pages: Optional[list[str]] = None
     scan_depth: Literal["standard", "thorough"] = "standard"
+    scan_mode: Literal["simple", "master"] = "simple"
+
+
+def _apply_scan_mode(details: WebsiteDetails) -> WebsiteDetails:
+    """Simple scan: homepage only, standard depth. Master: full user options."""
+    if details.scan_mode == "master":
+        return details
+    return WebsiteDetails(
+        name=details.name,
+        category=details.category,
+        scan_purpose=details.scan_purpose,
+        notes=details.notes,
+        additional_pages=None,
+        scan_depth="standard",
+        scan_mode="simple",
+    )
 
 
 class ScanRequest(BaseModel):
@@ -41,26 +61,40 @@ class ScanRequest(BaseModel):
 @app.post("/api/scan")
 def scan_website(request: ScanRequest):
     try:
-        url = request.url
-        details = request.website_details or WebsiteDetails()
-        print(f"Starting scan for: {url}")
+        url = request.url.strip()
+        raw_details = request.website_details or WebsiteDetails()
+        details = _apply_scan_mode(raw_details)
+        scan_mode = details.scan_mode
+
+        ok, validation_error = validate_scan_url(url)
+        if not ok:
+            raise HTTPException(status_code=400, detail=validation_error)
+
+        print(f"Starting {scan_mode} scan for: {url}")
 
         traffic_result = capture_traffic(
             url,
             additional_pages=details.additional_pages,
             scan_depth=details.scan_depth,
         )
+        if not traffic_result.get("reachable", False):
+            raise HTTPException(
+                status_code=422,
+                detail=traffic_result.get("error")
+                or "We could not reach this website. Check the URL and try again.",
+            )
+
         traffic_data = traffic_result["requests"]
         scan_metadata = traffic_result["metadata"]
-        
+
         policy_result = None
         policy_text = ""
         
-        if request.policy_text:
+        if request.policy_text and scan_mode == "master":
             print("Using provided raw policy text.")
             policy_text = request.policy_text
             policy_result = {"status": "FOUND", "content": policy_text}
-        elif request.policy_url:
+        elif request.policy_url and scan_mode == "master":
             print(f"Scraping specific provided policy URL: {request.policy_url}")
             from policy.policy_scraper import scrape_specific_policy_url
             policy_result = scrape_specific_policy_url(request.policy_url)
@@ -87,25 +121,57 @@ def scan_website(request: ScanRequest):
         # 6. Compare Policy vs Traffic
         mismatches = compare_policy_vs_traffic(detected_trackers, policy_claims)
         
-        # 7. Scoring System
+        policy_found = not any(
+            "Could not analyze privacy policy" in c for c in policy_claims
+        )
+
         risk_score, transparency_score = calculate_scores(
             detected_trackers, leaks, mismatches, policy_claims
         )
-        
-        return {
+
+        compliance_insights = build_compliance_insights(
+            detected_trackers,
+            mismatches,
+            policy_claims,
+            policy_found,
+            scan_metadata.get("pages_scanned", []),
+            scan_mode=scan_mode,
+        )
+
+        explainability = build_explainability_report(
+            detected_trackers,
+            leaks,
+            mismatches,
+            policy_claims,
+            policy_found,
+            risk_score,
+            transparency_score,
+            url,
+            scan_mode=scan_mode,
+        )
+
+        full_report = {
+            "scan_status": "success",
+            "scan_mode": scan_mode,
             "risk_score": risk_score,
             "transparency_score": transparency_score,
-            "trackers": [t.model_dump() if hasattr(t, 'model_dump') else t for t in detected_trackers],
+            "trackers": [t.model_dump() if hasattr(t, "model_dump") else t for t in detected_trackers],
             "leaks": leaks,
             "policy_summary": policy_claims,
             "mismatches": mismatches,
+            "compliance_insights": compliance_insights,
+            "plain_language": explainability["plain_language"],
+            "data_flow": explainability["data_flow"],
             "website_details": details.model_dump(exclude_none=True),
             "scan_metadata": {
                 **scan_metadata,
                 "scanned_at": datetime.now(timezone.utc).isoformat(),
                 "target_url": url,
+                "scan_mode": scan_mode,
             },
         }
+
+        return format_report_for_mode(scan_mode, full_report)
     except Exception as e:
         print(f"Error during scan: {e}")
         raise HTTPException(status_code=500, detail=str(e))

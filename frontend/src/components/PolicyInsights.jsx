@@ -1,68 +1,75 @@
 import { FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
 
-export default function PolicyInsights({ summary, mismatches }) {
+export default function PolicyInsights({
+  summary,
+  mismatches,
+  compact = false,
+  truncated = false,
+}) {
   return (
     <div className="space-y-5">
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <FileText className="text-blue-400 w-5 h-5" />
+      <div className="palette-card p-6 bg-orange">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-terracotta border-2 border-brown">
+            <FileText className="w-5 h-5 text-cream" />
           </div>
-          <div>
-            <h3 className="text-base font-semibold text-white">Policy Claims</h3>
-            <p className="text-xs text-slate-500">What the privacy policy states</p>
-          </div>
+          <h3 className="font-bold text-brown">
+            {compact ? "Policy highlights" : "Policy claims"}
+          </h3>
         </div>
-
         {summary?.length > 0 ? (
-          <ul className="space-y-2.5">
-            {summary.map((claim, idx) => (
-              <li
-                key={idx}
-                className="flex gap-3 text-sm text-slate-300 items-start bg-white/[0.02] border border-white/5 p-3 rounded-xl"
-              >
-                <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                <span>{claim}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="space-y-2">
+              {summary.map((claim, idx) => (
+                <li
+                  key={idx}
+                  className="flex gap-2 text-sm text-brown p-3 rounded-xl bg-cream border-2 border-terracotta"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{claim}</span>
+                </li>
+              ))}
+            </ul>
+            {compact && truncated && (
+              <p className="text-xs text-muted mt-3">
+                More policy claims available in Master scan.
+              </p>
+            )}
+          </>
         ) : (
-          <p className="text-sm text-slate-500 italic p-3 bg-white/[0.02] rounded-xl border border-white/5">
-            No clear claims found or policy could not be analyzed.
+          <p className="text-sm text-muted italic p-3 bg-cream rounded-xl border-2 border-terracotta">
+            No policy claims could be extracted.
           </p>
         )}
       </div>
 
-      <div className="glass-card p-6">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <AlertTriangle className="text-amber-400 w-5 h-5" />
+      {!compact && (
+        <div className="palette-card p-6 bg-cream">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-orange border-2 border-brown">
+              <AlertTriangle className="w-5 h-5 text-brown" />
+            </div>
+            <h3 className="font-bold text-brown">Policy vs. practice</h3>
           </div>
-          <div>
-            <h3 className="text-base font-semibold text-white">Policy vs Actual</h3>
-            <p className="text-xs text-slate-500">Discrepancies found</p>
-          </div>
+          {mismatches?.length > 0 ? (
+            <ul className="space-y-2">
+              {mismatches.map((mismatch, idx) => (
+                <li
+                  key={idx}
+                  className="text-sm text-cream p-3 rounded-xl bg-terracotta border-2 border-brown font-medium"
+                >
+                  {mismatch}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="flex gap-2 p-4 rounded-xl bg-orange border-2 border-brown text-sm font-semibold text-brown">
+              <CheckCircle2 className="w-5 h-5 shrink-0" />
+              No major gaps detected between policy and observed connections.
+            </div>
+          )}
         </div>
-
-        {mismatches?.length > 0 ? (
-          <ul className="space-y-2.5">
-            {mismatches.map((mismatch, idx) => (
-              <li
-                key={idx}
-                className="flex gap-3 text-sm text-amber-200 items-start bg-amber-950/20 p-3.5 rounded-xl border border-amber-500/15"
-              >
-                <div className="mt-1.5 w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-                <span>{mismatch}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="flex items-center gap-3 p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm">
-            <CheckCircle2 className="w-5 h-5 shrink-0" />
-            No conflicts detected between policy and traffic.
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

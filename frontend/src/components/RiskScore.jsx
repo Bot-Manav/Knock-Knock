@@ -3,38 +3,38 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
+const PALETTE = {
+  low: "#ff7b2e",
+  mid: "#c24e2a",
+  high: "#3a1f12",
+  track: "#f4e7e1",
+};
+
 export default function RiskScore({ score, title, description, type }) {
-  let color = "#818cf8";
-  let glow = "rgba(129, 140, 248, 0.3)";
-  let label = "Neutral";
+  let color = PALETTE.mid;
+  let label = "Moderate";
 
   if (type === "risk") {
     if (score < 30) {
-      color = "#34d399";
-      glow = "rgba(52, 211, 153, 0.25)";
-      label = "Low Risk";
+      color = PALETTE.low;
+      label = "Lower concern";
     } else if (score < 70) {
-      color = "#fbbf24";
-      glow = "rgba(251, 191, 36, 0.25)";
-      label = "Moderate";
+      color = PALETTE.mid;
+      label = "Review";
     } else {
-      color = "#f87171";
-      glow = "rgba(248, 113, 113, 0.25)";
-      label = "High Risk";
+      color = PALETTE.high;
+      label = "Higher concern";
     }
-  } else if (type === "transparency") {
+  } else {
     if (score > 70) {
-      color = "#34d399";
-      glow = "rgba(52, 211, 153, 0.25)";
-      label = "Transparent";
+      color = PALETTE.low;
+      label = "Strong";
     } else if (score > 40) {
-      color = "#fbbf24";
-      glow = "rgba(251, 191, 36, 0.25)";
+      color = PALETTE.mid;
       label = "Partial";
     } else {
-      color = "#f87171";
-      glow = "rgba(248, 113, 113, 0.25)";
-      label = "Opaque";
+      color = PALETTE.high;
+      label = "Needs work";
     }
   }
 
@@ -42,54 +42,41 @@ export default function RiskScore({ score, title, description, type }) {
     datasets: [
       {
         data: [score, 100 - score],
-        backgroundColor: [color, "rgba(15, 23, 42, 0.8)"],
+        backgroundColor: [color, PALETTE.track],
         borderWidth: 0,
         circumference: 220,
         rotation: 250,
         cutout: "78%",
-        borderRadius: 8,
+        borderRadius: 6,
       },
     ],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      tooltip: { enabled: false },
-      legend: { display: false },
-    },
-  };
-
   return (
-    <div
-      className="glass-card glass-card-interactive p-6 flex flex-col items-center relative overflow-hidden"
-      style={{ boxShadow: `0 4px 32px ${glow}` }}
-    >
-      <div
-        className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl pointer-events-none opacity-40"
-        style={{ background: color }}
-      />
-
-      <div className="w-full flex items-start justify-between mb-4 relative z-10">
+    <div className="palette-card p-6 flex flex-col items-center surface-cream">
+      <div className="w-full flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-base font-semibold text-white">{title}</h3>
-          <p className="text-xs text-slate-500 mt-0.5">{description}</p>
+          <h3 className="font-bold text-brown">{title}</h3>
+          <p className="text-xs text-muted mt-0.5">{description}</p>
         </div>
         <span
-          className="text-xs font-semibold px-2.5 py-1 rounded-full border"
-          style={{ color, borderColor: `${color}40`, background: `${color}15` }}
+          className="text-xs font-bold px-2 py-1 rounded-lg border-2 border-palette-dark text-brown"
+          style={{ backgroundColor: color }}
         >
           {label}
         </span>
       </div>
-
-      <div className="relative w-44 h-28 mb-2">
-        <Doughnut data={data} options={options} />
+      <div className="relative w-44 h-28">
+        <Doughnut
+          data={data}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { tooltip: { enabled: false }, legend: { display: false } },
+          }}
+        />
         <div className="absolute inset-0 flex items-end justify-center pb-1">
-          <span className="text-5xl font-extrabold tabular-nums" style={{ color }}>
-            {score}
-          </span>
+          <span className="text-5xl font-extrabold text-brown">{score}</span>
         </div>
       </div>
     </div>
