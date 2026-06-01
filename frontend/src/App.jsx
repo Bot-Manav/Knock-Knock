@@ -45,7 +45,7 @@ function Footer() {
   return (
     <footer className="border-t-2 border-brown py-6 px-6 bg-brown">
       <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-cream font-medium">
-        <p>&copy; {new Date().getFullYear()} Knock-Knock</p>
+        <p>&copy; {new Date().getFullYear()} Knock-Knock by team Falcons</p>
         <p className="text-xs opacity-80 text-center">
           Compare privacy policies with public site behavior — responsibly & transparently
         </p>
